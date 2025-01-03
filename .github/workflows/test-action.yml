@@ -1,0 +1,152 @@
+name: Test Download NuGet Package Action
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  test_without_config:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Test without nuget.config and version (use defaults)
+        uses: ./
+        with:
+          package-directory: './test-packages'
+          package-name: 'Newtonsoft.Json'
+
+      - name: Verify package is present
+        run: |
+          if [[ ! $(find ./test-packages -iname "Newtonsoft.Json*.nupkg" -print -quit) ]]; then
+            echo "Package not found in the expected directory"
+            exit 1
+          fi
+
+  test_without_config_version_specified:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up environment
+        run: mkdir -p test-packages
+
+      - name: Test without nuget.config and version (use defaults)
+        uses: ./
+        with:
+          package-directory: './test-packages'
+          package-name: 'Newtonsoft.Json'
+          version: '12.0.3'
+
+      - name: Verify package is present
+        run: |
+          if [[ ! $(find ./test-packages -iname "Newtonsoft.Json.12.0.3.nupkg" -print -quit) ]]; then
+            echo "Package not found in the expected directory"
+            exit 1
+          fi
+
+  test_with_config:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Update NuGet source credentials
+        run: |
+          cd config
+          dotnet nuget update source GitHub-AsnaQSys \
+            --username ${{ secrets.GH_USER }} \
+            --password ${{ secrets.GH_APIKEY }} \
+            --store-password-in-clear-text
+
+      - name: Test with nuget.config
+        uses: ./
+        with:
+          nuget-config: './config/nuget.config'
+          package-directory: './test-packages'
+          package-name: 'ASNA.QSys.MonaServer'
+
+      - name: Verify package is present
+        run: |
+          if [[ ! $(find ./test-packages -iname "ASNA.QSys.MonaServer*.nupkg" -print -quit) ]]; then
+            echo "Package not found in the expected directory"
+            exit 1
+          fi
+
+  test_with_config_and_version:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Update NuGet source credentials
+        run: |
+          cd config
+          dotnet nuget update source GitHub-AsnaQSys \
+            --username ${{ secrets.GH_USER }} \
+            --password ${{ secrets.GH_APIKEY }} \
+            --store-password-in-clear-text
+
+      - name: Test with version
+        uses: ./
+        with:
+          nuget-config: './config/nuget.config'
+          package-directory: './test-packages'
+          package-name: 'ASNA.QSys.MonaServer'
+          version: '5.0.25'
+
+      - name: Verify package is present
+        run: |
+          if [[ ! $(find ./test-packages -iname "ASNA.QSys.MonaServer.5.0.25.nupkg" -print -quit) ]]; then
+            echo "Package not found in the expected directory"
+            exit 1
+          fi
+
+  test_invalid_version_no_package_found:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Test no matching package found
+        uses: ./
+        with:
+          package-directory: './test-packages'
+          package-name: 'ASNA.QSys.MonaServer'
+          version: '999.999.999'
+        continue-on-error: true
+
+      - name: Verify no package found
+        run: |
+          if [[ $ErrorMessage == "Package not found" ]]; then
+            echo "Expected package not found - Test Passed"
+          else
+            echo "Package was unexpectedly found."
+            exit 1
+          fi
+
+  test_invalid_name_no_package_found:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Test no matching package found
+        uses: ./
+        with:
+          package-directory: './test-packages'
+          package-name: 'ASNA.QSys.XXXXXX'
+        continue-on-error: true
+
+      - name: Verify no package found
+        run: |
+          if [[ $ErrorMessage == "Package not found" ]]; then
+            echo "Expected package not found - Test Passed"
+          else
+            echo "Package was unexpectedly found."
+            exit 1
+          fi
