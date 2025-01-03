@@ -1,3 +1,5 @@
+[![Test Download NuGet Package Action](https://github.com/mwbowers/download-nuget-package/actions/workflows/test-action.yml/badge.svg)](https://github.com/mwbowers/download-nuget-package/actions/workflows/test-action.yml)
+
 # Download NuGet Package Action
 
 This GitHub Action downloads a specified NuGet package copies it to a specified directory. It supports both public and private NuGet feeds, and you can specify the version of the package to be downloaded.
